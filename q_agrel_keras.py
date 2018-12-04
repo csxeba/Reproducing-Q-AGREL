@@ -23,7 +23,6 @@ Copyright (c) 2018, Csaba Gór
 """
 
 import numpy as np
-np.random.seed(1337)
 
 from matplotlib import pyplot as plt
 
@@ -33,6 +32,8 @@ from keras.optimizers import SGD
 from keras.utils import to_categorical
 
 from util import pull_mnist, shuffle, softmax
+
+np.random.seed(1337)
 
 lX, lY, tX, tY = pull_mnist()
 tY = to_categorical(tY, num_classes=10)

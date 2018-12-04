@@ -43,11 +43,11 @@ def glorot_kernel(shape):
     return np.random.uniform(-limit, limit, size=shape)
 
 
-def run_q_agrel(batch_size, epochs, α, ε,
+def run_q_agrel(batch_size, epochs, learning_rate, ε,
                 num_in, num_h1, num_h2, num_out):
 
-    possible_actions = np.arange(10)
     np.random.seed(1337)
+    possible_actions = np.arange(10)
 
     # Glorot works better for me
     # U = np.random.uniform(low=-0.05, high=0.05, size=(num_in, num_h1))
@@ -82,7 +82,7 @@ def run_q_agrel(batch_size, epochs, α, ε,
         for i, (x, y) in enumerate(([lX[s:s + batch_size], lY[s:s + batch_size]]
                                    for s in range(0, len(lX), batch_size)), start=1):
             m = len(x)  # get current batch's actual size (might be less than <batch_size>)
-            α /= m  # incorporate it into the learning rate
+            α = learning_rate / m  # incorporate it into the learning rate
 
             ################
             # Forward pass #
@@ -109,8 +109,7 @@ def run_q_agrel(batch_size, epochs, α, ε,
             ######################
             # Reward calculation #
             ######################
-            gt = np.argmax(y, axis=1)  # Ground truth -> y is onehot
-            R = (gt == S).astype(float)  # Reward is 1 at right predictions
+            R = (y == S).astype(float)  # Reward is 1 at right predictions
             𝛿 = Q[range(m), S] - R[S]  # RPE (reward prediction error)
             # 𝛿 = R[S] - Q[range(m), S]  # TODO: unsure about the order
             E = (0.5 * 𝛿**2).mean()  # Integral of RPE, turns out to be MSE :)
@@ -149,7 +148,6 @@ def run_q_agrel(batch_size, epochs, α, ε,
             print("\r\t{:>7.2%} - acc {:.4f} - 'loss' {:.4f}".format(
                 progress, reward, E.mean()), end="")
         print()
-        print("Evaluating: validation acc {:.4f} validation 'loss' {:.4f}")
 
     plt.plot(rewards_sum)
     plt.grid()
