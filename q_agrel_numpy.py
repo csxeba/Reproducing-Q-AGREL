@@ -44,7 +44,7 @@ def glorot_kernel(shape):
 
 
 def run_q_agrel(batch_size, epochs, learning_rate, ε,
-                num_in, num_h1, num_h2, num_out):
+                num_in, num_h1, num_h2, num_out, momentum):
 
     np.random.seed(1337)
     possible_actions = np.arange(10)
@@ -67,6 +67,11 @@ def run_q_agrel(batch_size, epochs, learning_rate, ε,
     Vb = V.T
     # Ub = U.T  # These are not used, they would be used to backpropagate into network input.
     # We use reciprocal views, even though they brake biological plausibility IMO.
+
+    # Momentum velocities
+    vU = None
+    vV = None
+    vW = None
 
     lX, lY, tX, tY = pull_mnist()
 
@@ -97,7 +102,7 @@ def run_q_agrel(batch_size, epochs, learning_rate, ε,
             ####################
             # Action selection #
             ####################
-            roll = np.random.random(size=m) < ε  # With probability epsilon, we go with a stochastically chosen action
+            roll = np.random.random(size=m) < (ε ** e)
             S = np.argmax(Q, axis=1)
             P = softmax(Q[roll])
             S[roll] = [np.random.choice(possible_actions, p=p) for p in P]
@@ -134,9 +139,21 @@ def run_q_agrel(batch_size, epochs, learning_rate, ε,
             ####################
             # Optimize weights #
             ####################
-            U -= ΔU
-            V -= ΔV
-            W -= ΔW
+            if vU is None:
+                vU = ΔU
+                vV = ΔV
+                vW = ΔW
+            else:
+                vU *= momentum
+                vU += ΔU
+                vV *= momentum
+                vV += ΔV
+                vW *= momentum
+                vW += ΔW
+
+            U -= vU
+            V -= vV
+            W -= vW
             # Ub -= ΔU.T
             # Vb -= ΔV.T
             # Wb -= ΔW.T
@@ -155,16 +172,17 @@ def run_q_agrel(batch_size, epochs, learning_rate, ε,
 
 
 def main():
-    EPOCHS = 20
+    EPOCHS = 50
     BATCH_SIZE = 1000
-    LEARNING_RATE = 0.5
+    LEARNING_RATE = 1.0
+    MOMENTUM = 0.9
     EPSILON = 0.5
     NUM_IN = 784
     NUM_H1 = 300
     NUM_H2 = 100
     NUM_OUT = 10
 
-    run_q_agrel(BATCH_SIZE, EPOCHS, LEARNING_RATE, EPSILON, NUM_IN, NUM_H1, NUM_H2, NUM_OUT)
+    run_q_agrel(BATCH_SIZE, EPOCHS, LEARNING_RATE, EPSILON, NUM_IN, NUM_H1, NUM_H2, NUM_OUT, MOMENTUM)
 
 
 if __name__ == '__main__':

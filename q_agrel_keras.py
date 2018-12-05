@@ -47,14 +47,14 @@ stream = Dense(300, activation="relu", use_bias=False)(inputs)
 stream = Dense(100, activation="relu", use_bias=False)(stream)
 Qs = Dense(10, activation="linear", use_bias=False)(stream)
 model = Model(inputs, Qs)
-model.compile(SGD(1.), "mse", metrics=["acc"])
+model.compile(SGD(1., momentum=0.9), "mse", metrics=["acc"])
 
 possible_labels = np.arange(10)
 N = len(lX)
 num_updates = N // 1000
 losses = []
 accs = []
-for e in range(1, 31):
+for e in range(1, 51):
     print("\nEpoch", e)
     lX, lY = shuffle(lX, lY)
     for i, (x, y) in enumerate(([lX[s:s+1000], lY[s:s+1000]] for s in range(0, N, 1000)), start=1):
@@ -62,7 +62,7 @@ for e in range(1, 31):
         p = softmax(q)
         # Action selection: we either take the highest Q greedily or sample from the softmax of Q.
         s = np.argmax(q, axis=1)
-        roll = np.random.random(len(q)) < (0.5**e)
+        roll = np.random.random(len(q)) < (0.9**e)
         s[roll] = [np.random.choice(possible_labels, p=prob) for prob in p[roll]]
         # Reward is 1 if prediction was right, 0 otherwise
         r = (s == y).astype("float32")  # Note that y is NOT onehot!
@@ -74,9 +74,9 @@ for e in range(1, 31):
         acc = r.mean()
         losses.append(loss)
         accs.append(acc)
-        print("\r{:>7.2%} - E {:.4f} - A {:>6.2%}".format(i/num_updates, loss, acc), end="")
+        print("\r\t{:>7.2%} - E {:.4f} - A {:>6.2%}".format(i/num_updates, loss, acc), end="")
     print()
-    print("Validation acc: {:.2%}".format(model.evaluate(tX, tY, batch_size=32, verbose=0)[1]))
+    print("\tValidation acc: {:.2%}".format(model.evaluate(tX, tY, batch_size=32, verbose=0)[1]))
 
 fig, (tax, bax) = plt.subplots(2, 1, sharex="all")
 tax.plot(losses)
